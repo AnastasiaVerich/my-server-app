@@ -63,11 +63,12 @@ exports.uploadPhoto = async (req, res) => {
             return res.status(400).json({ error: 'No image provided' });
         }
 
-        // Декодируем base64 строку в буфер
-        const imageBuffer = Buffer.from(base64Image, 'base64');
+         // Декодируем Base64 строку в буфер
+        const buffer = Buffer.from(base64Image, 'base64');
+
         // Загружаем изображение в canvas
-        const image = await canvas.loadImage(req.body.image);
-        const detections = await faceapi.detectAllFaces(imageBuffer)
+        const image = await canvas.loadImage(buffer);
+        const detections = await faceapi.detectAllFaces(image)
             .withFaceLandmarks()
             .withFaceDescriptors();
 
