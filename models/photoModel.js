@@ -4,7 +4,7 @@ const { Pool } = require('pg');
 // Настройка подключения к базе данных
 const pool = new Pool({
     user: 'myuser',
-    host: 'green-apple.io',
+    host: 'localhost',
     database: 'test',
     password: 'test',
     port: 5432,
