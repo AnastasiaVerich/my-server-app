@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const photoRoutes = require('./routes/photoRoutes'); // Маршруты для работы с фото
 
 const app = express();
-const port = 5000;
+const port = 5001;
 
 // Middleware
 app.use(bodyParser.json({ limit: '10mb' }));
