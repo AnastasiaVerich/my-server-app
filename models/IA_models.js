@@ -41,10 +41,16 @@ exports.getAllEmbedding = async (isDev) => {
         }
         return embeddings;
     } else {
+        const embeddings = [];
 
         const query = 'SELECT * FROM face_embeddings';
         const result = await pool.query(query);
-        return result.rows; // Возвращает ID записи
+
+        return result.rows.map(el=>({
+            person_name: el.person_name, // Убираем расширение из имени файла
+            id: el.id,         // Можно заменить на уникальный идентификатор
+            embedding: Object.values(el.embedding),
+        }));
 
     }
 };
