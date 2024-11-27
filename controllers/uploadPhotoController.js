@@ -6,7 +6,7 @@ const {getAllEmbedding, embeddingSave} = require("../models/IA_models");
 const fs = require('fs');
 const {savePhoto} = require("../models/photoModel");
 
-const isDev = true
+const isDev = false
 
 async function loadModels() {
     const modelsPath = path.join(__dirname, "..", "ia_models");
