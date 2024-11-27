@@ -2,9 +2,12 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const photoRoutes = require('./routes/photoRoutes'); // Маршруты для работы с фото
+const cors = require('cors');
 
 const app = express();
 const port = 5000;
+
+app.use(cors({ origin: 'http://localhost:3000' }));
 
 // Middleware
 app.use(bodyParser.json({ limit: '10mb' }));

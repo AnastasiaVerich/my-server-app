@@ -1,119 +1,126 @@
 //содержит логику для загрузки фото
-const { savePhoto } = require('../models/photoModel');
+const faceapi = require("@vladmandic/face-api");
+const path = require("path");
+const tf = require('@tensorflow/tfjs-node');
+const {getAllEmbedding, embeddingSave} = require("../models/IA_models");
+const fs = require('fs');
+const {savePhoto} = require("../models/photoModel");
 
-const multer = require('multer');
-const faceapi = require('face-api.js');
-const canvas = require('canvas');
-// Инициализация face-api.js с нужными моделями
-async function loadFaceApiModels() {
-    const modelPath = './models'; // Путь к папке с моделями
-    await faceapi.nets.ssdMobilenetv1.loadFromDisk(modelPath);
-    await faceapi.nets.faceRecognitionNet.loadFromDisk(modelPath);
-    await faceapi.nets.faceLandmark68Net.loadFromDisk(modelPath);
+const isDev = true
+
+async function loadModels() {
+    const modelsPath = path.join(__dirname, "..", "ia_models");
+
+    await faceapi.nets.ssdMobilenetv1.loadFromDisk(modelsPath); // Обнаружение лиц
+    await faceapi.nets.faceLandmark68Net.loadFromDisk(modelsPath); // Маркировка лиц
+    await faceapi.nets.faceRecognitionNet.loadFromDisk(modelsPath); // Эмбеддинги
+    console.log("Модели загружены.");
 }
-// Функция для сравнения эмбеддинга с базой данных
-async function compareEmbeddings(newEmbedding) {
-    const client = await pool.connect();
+
+loadModels().catch(console.error);
+
+exports.find_user_by_photo = async (req, res) => {
     try {
-        const result = await client.query('SELECT id, name, embedding FROM face_embeddings');
-        for (const row of result.rows) {
-            const storedEmbedding = row.embedding;
 
-            // Сравниваем эмбеддинги (вычисляем расстояние)
-            const distance = compareFaceEmbeddings(newEmbedding, storedEmbedding);
-            if (distance < 0.6) { // Пороговое значение
-                return row; // Найдено совпадение
-            }
-        }
-        return null; // Совпадение не найдено
-    } finally {
-        client.release();
-    }
-}
-// Функция для расчета расстояния между эмбеддингами
-function compareFaceEmbeddings(embedding1, embedding2) {
-    // Евклидово расстояние между двумя эмбеддингами
-    let distance = 0;
-    for (let i = 0; i < embedding1.length; i++) {
-        distance += Math.pow(embedding1[i] - embedding2[i], 2);
-    }
-    return Math.sqrt(distance);
-}
-// Функция для сохранения эмбеддинга в PostgreSQL
-async function saveEmbeddingToDB(embedding, name) {
-    const client = await pool.connect();
-    try {
-        await client.query(
-            'INSERT INTO face_embeddings (name, embedding) VALUES ($1, $2)',
-            [name, embedding]
-        );
-    } finally {
-        client.release();
-    }
-}
-// Настройка multer для загрузки изображений
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
-
-exports.uploadPhoto = async (req, res) => {
-    try {
-        const base64Image = req.body.image;
-
-        if (!base64Image) {
-            return res.status(400).json({ error: 'No image provided' });
+        if (!req.file) {
+            return res.status(400).json({error: 'Нет изображения'});
         }
 
-         // Декодируем Base64 строку в буфер
-        const buffer = Buffer.from(base64Image, 'base64');
+        const buffer = req.file.buffer;
 
-        // Загружаем изображение в canvas
-        const image = await canvas.loadImage(buffer);
-        const detections = await faceapi.detectAllFaces(image)
+        // Преобразуем изображение в тензор с помощью TensorFlow.js
+        const tensor = tf.node.decodeImage(buffer);
+
+        // Обнаружение лиц
+        const detections = await faceapi
+            .detectAllFaces(tensor)
             .withFaceLandmarks()
             .withFaceDescriptors();
 
-        if (detections.length === 0) {
-            return res.status(400).send({ error: 'No faces found in the image' });
+
+        if (!detections.length) {
+            return res.status(404).send({error: 'Лицо не найдено'});
         }
 
-/*        // Извлекаем эмбеддинги лиц
-        const faceEmbeddings = detections.map(d => d.descriptor);
 
-        // Сравниваем эмбеддинг с базой данных
-        for (const embedding of faceEmbeddings) {
-            const person = await compareEmbeddings(embedding);
-            if (person) {
-                return res.send({ message: `Person found: ${person.name}` });
+        // достаем все эмбеддинги
+        const embeddingsFromDB = await getAllEmbedding(isDev);
+
+        const detection = detections[0]
+
+        const matches = [];
+        for (let row of embeddingsFromDB) {
+            const distance = faceapi.euclideanDistance(
+                detection.descriptor,
+                row.embedding
+            );
+            if (distance < 0.6) {
+                matches.push({id: row.id, name: row.person_name, distance});
             }
         }
+        if(!isDev){
+            // Сохраняем фото в базе данных
+            await savePhoto(req.file.buffer);
+        }
 
-        // Если лицо не найдено в базе данных, сохраняем как "unknown"
-        await saveEmbeddingToDB(faceEmbeddings[0], 'unknown');
-        return res.send({ message: 'Face not recognized, saved as "unknown"' });*/
+        res.status(200).json(matches.length ? matches : "Совпадений не найдено.");
 
     } catch (error) {
-        console.error('Error uploading photo:', error);
-        return res.status(500).json({ error: 'Server error' });
+        console.log(error)
+        return res.status(500).json({error: 'Упс'});
     }
 };
 
-/*exports.uploadPhoto = async (req, res) => {
+exports.save_user_photo = async (req, res) => {
     try {
-        const { image } = req.body;
 
-        if (!image) {
-            return res.status(400).json({ error: 'No image provided' });
+        if (!req.file) {
+            return res.status(400).json({error: 'Нет изображения'});
         }
 
-        // Декодируем Base64 в бинарные данные
-        const photoBuffer = Buffer.from(image.split(',')[1], 'base64');
+        const buffer = req.file.buffer;
 
-        // Сохраняем фото в базе данных
-        const photoId = await savePhoto(photoBuffer);
+        // Преобразуем изображение в тензор с помощью TensorFlow.js
+        const tensor = tf.node.decodeImage(buffer);
 
-        return res.json({ message: 'Photo uploaded successfully', photoId });
+        // Обнаружение лиц
+        const detections = await faceapi
+            .detectAllFaces(tensor)
+            .withFaceLandmarks()
+            .withFaceDescriptors();
+
+
+        if (!detections.length) {
+            return res.status(404).send('Лицо не найдено.');
+        }
+
+        //лиц может быть несколько на фото, берем первое
+        const findFirstFace = detections[0].descriptor
+
+        if (isDev) {
+            const embeddingsFolder = path.join(__dirname, '..', 'embeddings');
+            if (!fs.existsSync(embeddingsFolder)) {
+                fs.mkdirSync(embeddingsFolder);
+            }
+            const fileName = 'name' + Number(new Date())
+
+            // Формируем путь к файлу
+            const filePath = path.join(embeddingsFolder, `${fileName}.json`);
+
+            // Сохраняем эмбеддинг в формате JSON
+            fs.writeFileSync(filePath, JSON.stringify(findFirstFace, null, 2), 'utf-8');
+
+        } else {
+            await embeddingSave(findFirstFace);
+        }
+
+
+        return res.status(200).json("Сохр");
+
+
     } catch (error) {
         console.error('Error uploading photo:', error);
-        return res.status(500).json({ error: 'Server error' });
+        return res.status(500).json({error: 'Server error'});
     }
-};*/
+};
+

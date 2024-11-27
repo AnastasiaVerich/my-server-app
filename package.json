@@ -14,10 +14,11 @@
   },
   "description": "",
   "dependencies": {
+    "@tensorflow/tfjs-node": "^4.22.0",
+    "@vladmandic/face-api": "^1.7.14",
     "body-parser": "^1.20.3",
-    "canvas": "^2.11.2",
+    "cors": "^2.8.5",
     "express": "^4.21.1",
-    "face-api.js": "^0.22.2",
     "multer": "^1.4.5-lts.1",
     "pg": "^8.13.1"
   }
