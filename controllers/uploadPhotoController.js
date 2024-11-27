@@ -111,7 +111,7 @@ exports.save_user_photo = async (req, res) => {
             fs.writeFileSync(filePath, JSON.stringify(findFirstFace, null, 2), 'utf-8');
 
         } else {
-            await embeddingSave(findFirstFace);
+            await embeddingSave(JSON.stringify(findFirstFace, null, 2));
         }
 
 
