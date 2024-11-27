@@ -66,7 +66,7 @@ exports.find_user_by_photo = async (req, res) => {
         res.status(200).json(matches.length ? matches : "Совпадений не найдено.");
 
     } catch (error) {
-        console.log(error)
+        console.error(error)
         return res.status(500).json({error: 'Упс'});
     }
 };
