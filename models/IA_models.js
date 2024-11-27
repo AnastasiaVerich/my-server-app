@@ -9,7 +9,7 @@ const pool = new Pool(dbConfig);
 
 // Функция для сохранения фото
 exports.embeddingSave = async (findFirstFace) => {
-    const query = 'INSERT INTO face_embeddings (person_name, embedding) VALUES ($1, $2)';
+    const query = 'INSERT INTO face_embeddings (person_name, embedding) VALUES ($1, $2) RETURNING id';
     const result = await pool.query(query, ["unknown",findFirstFace]);
     return result.rows[0].id; // Возвращает ID записи
 };
