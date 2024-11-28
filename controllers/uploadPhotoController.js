@@ -6,7 +6,6 @@ const {getAllEmbedding, embeddingSave} = require("../models/IA_models");
 const fs = require('fs');
 const {savePhoto} = require("../models/photoModel");
 
-const isDev = false
 
 async function loadModels() {
     const modelsPath = path.join(__dirname, "..", "ia_models");
@@ -44,7 +43,7 @@ exports.find_user_by_photo = async (req, res) => {
 
 
         // достаем все эмбеддинги
-        const embeddingsFromDB = await getAllEmbedding(isDev);
+        const embeddingsFromDB = await getAllEmbedding(process.env.VERSION === 'dev');
 
         const detection = detections[0]
 
@@ -58,7 +57,7 @@ exports.find_user_by_photo = async (req, res) => {
                 matches.push({id: row.id, name: row.person_name, distance});
             }
         }
-        if(!isDev){
+        if(process.env.VERSION !== 'dev'){
             // Сохраняем фото в базе данных
             await savePhoto(req.file.buffer);
         }
@@ -97,7 +96,7 @@ exports.save_user_photo = async (req, res) => {
         //лиц может быть несколько на фото, берем первое
         const findFirstFace = detections[0].descriptor
 
-        if (isDev) {
+        if (process.env.VERSION === 'dev') {
             const embeddingsFolder = path.join(__dirname, '..', 'embeddings');
             if (!fs.existsSync(embeddingsFolder)) {
                 fs.mkdirSync(embeddingsFolder);

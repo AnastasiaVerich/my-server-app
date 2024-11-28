@@ -3,11 +3,12 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const photoRoutes = require('./routes/photoRoutes'); // Маршруты для работы с фото
 const cors = require('cors');
-
+require('dotenv').config();
 const app = express();
-const port = 5000;
+const port = process.env.PORT;
 
-app.use(cors({ origin: 'http://localhost:3000' }));
+// кому можно делать запросы
+app.use(cors({ origin: process.env.CORS_URL }));
 
 // Middleware
 app.use(bodyParser.json({ limit: '10mb' }));
