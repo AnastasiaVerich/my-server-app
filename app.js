@@ -6,6 +6,7 @@ const cors = require('cors');
 require('dotenv').config();
 const app = express();
 const port = process.env.PORT;
+console.log(process.env.PORT)
 
 // кому можно делать запросы
 app.use(cors({ origin: process.env.CORS_URL }));

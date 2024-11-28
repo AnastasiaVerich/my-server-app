@@ -1,13 +1,8 @@
 const { Pool } = require('pg');
+const dbConfig = require('../config/dbConfig');
 
 // Настройка подключения к базе данных
-const pool = new Pool({
-    user: process.env.DATABASE_USER,
-    host: process.env.DATABASE_HOST,
-    database: process.env.DATABASE_NAME,
-    password: process.env.DATABASE_PASSWORD,
-    port: 5432,
-});
+const pool = new Pool(dbConfig);
 
 // Функция для сохранения фото
 exports.savePhoto = async (photoBuffer) => {
