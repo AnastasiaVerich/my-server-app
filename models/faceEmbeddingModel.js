@@ -8,9 +8,9 @@ const path = require("path");
 const pool = new Pool(dbConfig);
 
 // Функция для сохранения фото
-exports.embeddingSave = async (findFirstFace) => {
-    const query = 'INSERT INTO face_embeddings (person_name, embedding) VALUES ($1, $2) RETURNING id';
-    const result = await pool.query(query, ["unknown",findFirstFace]);
+exports.embeddingSave = async (userId,findFirstFace) => {
+    const query = 'INSERT INTO face_embeddings (id_user, embedding, created_at) VALUES ($1, $2, CURRENT_TIMESTAMP)';
+    const result = await pool.query(query, [userId, findFirstFace ]);
     return result.rows[0].id; // Возвращает ID записи
 };
 

@@ -5,8 +5,8 @@ const dbConfig = require('../config/dbConfig');
 const pool = new Pool(dbConfig);
 
 // Функция для сохранения фото
-exports.savePhoto = async (userId,id_embedding, photoBuffer) => {
-    const query = 'INSERT INTO photos (id_face_embedding,id_user, image) VALUES ($1,$2,$3)';
-    const result = await pool.query(query, [userId,id_embedding, photoBuffer]);
+exports.addUser = async (userId,userPhone ) => {
+    const query = 'INSERT INTO users (id_user, phone, created_at, updated_at) VALUES ($1,$2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)';
+    const result = await pool.query(query, [userId,userPhone]);
     return result.rows[0].id; // Возвращает ID записи
 };
